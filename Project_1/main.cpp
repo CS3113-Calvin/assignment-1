@@ -75,6 +75,9 @@ float g_obj1_x_dir = 1.0f; // 1.
 float g_obj2_rotation = 120.0f; // 120 degrees per second
 
 // EC: Scaling
+float g_obj1_scale = 1.0f;
+float g_obj2_scale = 1.0f;
+
 const float GROWTH_FACTOR = 0.5f; // .5% growth per second
 const float SHRINK_FACTOR = 0.5f; // .5% shrinkage per second
 const int MAX_FRAMES = 100;       // grow/shrink for 100 frames
@@ -87,13 +90,13 @@ glm::mat4 g_obj1_model_matrix, g_obj2_model_matrix;
 
 float m_previous_ticks = 0.0f;
 
-SDL_Joystick* g_player_one_controller;
-
 // overall position
-glm::vec3 g_player_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_obj1_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_obj2_position = glm::vec3(0.0f, 0.0f, 0.0f);
 
 // movement tracker
-glm::vec3 g_player_movement = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_obj1_movement = glm::vec3(1.0f, 1.0f, 0.0f);
+glm::vec3 g_obj2_movement = glm::vec3(-1.0f, -1.0f, 0.0f);
 
 float get_screen_to_ortho(float coordinate, Coordinate axis) {
     switch (axis) {
@@ -140,13 +143,10 @@ GLuint load_texture(const char* filepath) {
 }
 
 void initialise() {
-    // Initialise video and joystick subsystems
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
+    // Initialise video
+    SDL_Init(SDL_INIT_VIDEO);
 
-    // Open the first controller found. Returns null on error
-    g_player_one_controller = SDL_JoystickOpen(0);
-
-    g_display_window = SDL_CreateWindow("Hello, Textures!",
+    g_display_window = SDL_CreateWindow("Assignment 1 - Calvin Tian",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT,
         SDL_WINDOW_OPENGL);
@@ -185,60 +185,13 @@ void initialise() {
 }
 
 void process_input() {
-    g_player_movement = glm::vec3(0.0f);
-
     SDL_Event event;
-
     while (SDL_PollEvent(&event))
     {
-        switch (event.type) {
-        case SDL_WINDOWEVENT_CLOSE:
-        case SDL_QUIT:
+        if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE)
+        {
             g_game_is_running = false;
-            break;
-
-        case SDL_KEYDOWN:
-            switch (event.key.keysym.sym) {
-            case SDLK_RIGHT:
-                g_player_movement.x = 1.0f;
-                break;
-            case SDLK_LEFT:
-                g_player_movement.x = -1.0f;
-                break;
-            case SDLK_q:
-                g_game_is_running = false;
-                break;
-            default:
-                break;
-            }
-        default:
-            break;
         }
-    }
-
-    const Uint8* key_states = SDL_GetKeyboardState(NULL); // array of key states [0, 0, 1, 0, 0, ...]
-
-    if (key_states[SDL_SCANCODE_LEFT])
-    {
-        g_player_movement.x = -1.0f;
-    }
-    else if (key_states[SDL_SCANCODE_RIGHT])
-    {
-        g_player_movement.x = 1.0f;
-    }
-
-    if (key_states[SDL_SCANCODE_UP])
-    {
-        g_player_movement.y = 1.0f;
-    }
-    else if (key_states[SDL_SCANCODE_DOWN])
-    {
-        g_player_movement.y = -1.0f;
-    }
-
-    if (glm::length(g_player_movement) > 1.0f)
-    {
-        g_player_movement = glm::normalize(g_player_movement);
     }
 }
 
@@ -247,31 +200,21 @@ void update() {
     float delta_time = ticks - m_previous_ticks; // the delta time is the difference from the last frame
     m_previous_ticks = ticks;
 
-    // Add               direction         * elapsed time * units per second
-    g_player_position += g_player_movement * delta_time * 1.0f;
-
-    m_model_matrix = glm::mat4(1.0f);
-    m_model_matrix = glm::translate(m_model_matrix, g_player_position);
-
-    //g_obj1_model_matrix = glm::mat4(1.0f);
-    //g_obj1_model_matrix = glm::translate(g_obj1_model_matrix, g_player_position);
-
-    //g_obj2_model_matrix = glm::mat4(1.0f);
-    //g_obj2_model_matrix = glm::translate(g_obj2_model_matrix, g_player_position);
-
-    //g_obj1_model_matrix = glm::mat4(1.0f);
-    //g_obj2_model_matrix = glm::mat4(1.0f);
-
-    // Req 3: Rotation
-    g_obj2_rotation = DEGREES_PER_SECOND * delta_time;
-    g_obj2_model_matrix = glm::rotate(g_obj2_model_matrix, glm::radians(g_obj2_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+    // Reset the model matrix
+    g_obj1_model_matrix = glm::mat4(1.0f);
+    g_obj2_model_matrix = glm::mat4(1.0f);
 
     // Req 2: Movement
-    float obj_x = 0.5f * delta_time;
-    float obj_y = 0.5f * delta_time;
+    // Add             direction       * elapsed time * units per second
+    g_obj1_position += g_obj1_movement * delta_time   * 1.0f;
+    g_obj2_position += g_obj2_movement * delta_time   * 1.0f;
 
-    g_obj1_model_matrix = glm::translate(g_obj1_model_matrix, glm::vec3(obj_x, obj_y, 0.0f));
-    g_obj2_model_matrix = glm::translate(g_obj2_model_matrix, glm::vec3(-obj_x, -obj_y, 0.0f));
+    g_obj1_model_matrix = glm::translate(g_obj1_model_matrix, g_obj1_position);
+    g_obj2_model_matrix = glm::translate(g_obj2_model_matrix, g_obj2_position);
+
+    // Req 3: Rotation
+    g_obj2_rotation += DEGREES_PER_SECOND * delta_time;
+    g_obj2_model_matrix = glm::rotate(g_obj2_model_matrix, glm::radians(g_obj2_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // EC: Scaling
     // STEP 1
@@ -285,12 +228,13 @@ void update() {
     }
 
     // STEP 4
-    scale_vector = glm::vec3(g_is_growing ? 1 + (GROWTH_FACTOR * delta_time) : 1 - (SHRINK_FACTOR * delta_time),
-                             g_is_growing ? 1 + (GROWTH_FACTOR * delta_time) : 1 - (SHRINK_FACTOR * delta_time),
-                             1.0f);
-
-    // STEP 4
-    g_obj1_model_matrix = glm::scale(g_obj1_model_matrix, scale_vector);
+    if (g_is_growing) {
+        g_obj1_scale += GROWTH_FACTOR * delta_time;
+    }
+    else {
+		g_obj1_scale -= SHRINK_FACTOR * delta_time;
+	}
+    g_obj1_model_matrix = glm::scale(g_obj1_model_matrix, glm::vec3(g_obj1_scale, g_obj1_scale, 1.0f));
 }
 
 void draw_object(glm::mat4& object_model_matrix, GLuint& object_texture_id) {
@@ -321,8 +265,6 @@ void render() {
     glEnableVertexAttribArray(g_shader_program.get_tex_coordinate_attribute());
 
     // Bind texture
-    //draw_object(m_model_matrix, g_obj1_texture_id);
-    //draw_object(m_model_matrix, g_obj2_texture_id);
     draw_object(g_obj1_model_matrix, g_obj1_texture_id);
     draw_object(g_obj2_model_matrix, g_obj2_texture_id);
 
@@ -333,9 +275,7 @@ void render() {
     SDL_GL_SwapWindow(g_display_window);
 }
 
-void shutdown()
-{
-    SDL_JoystickClose(g_player_one_controller);
+void shutdown() {
     SDL_Quit();
 }
 
