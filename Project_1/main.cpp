@@ -54,25 +54,27 @@ const int NUMBER_OF_TEXTURES = 1; // to be generated, that is
 const GLint LEVEL_OF_DETAIL = 0;  // base image level; Level n is the nth mipmap reduction image
 const GLint TEXTURE_BORDER = 0;   // this value MUST be zero
 
-// Req 1: At least 2 objects
-// Object 1
-const char OBJECT_1_FILEPATH[] = "C:\\Users\\calvi\\source\\repos\\Project_1\\Assets\\calvin.png";
-GLuint g_obj1_texture_id;
-
-// Object 2
-const char OBJECT_2_FILEPATH[] = "C:\\Users\\calvi\\source\\repos\\Project_1\\Assets\\hobbes.png";
-GLuint g_obj2_texture_id;
-
 SDL_Window* g_display_window;
 bool g_game_is_running = true;
 
+// Req 1: At least 2 objects
+// object 1
+const char OBJECT_1_FILEPATH[] = "C:\\Users\\calvi\\source\\repos\\Project_1\\Assets\\calvin.png";
+GLuint g_obj1_texture_id;
+// object 2
+const char OBJECT_2_FILEPATH[] = "C:\\Users\\calvi\\source\\repos\\Project_1\\Assets\\hobbes.png";
+GLuint g_obj2_texture_id;
+
 // Req 2: Movement
-// move in a circle
-// move diagonally
-float g_obj1_x_dir = 1.0f; // 1.
+// overall position
+glm::vec3 g_obj1_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 g_obj2_position = glm::vec3(0.0f, 0.0f, 0.0f);
+// movement tracker
+glm::vec3 g_obj1_movement = glm::vec3(1.0f, 1.0f, 0.0f);    // up and right
+glm::vec3 g_obj2_movement = glm::vec3(-1.0f, -1.0f, 0.0f);  // down and left
 
 // Req 3: Rotation
-float g_obj2_rotation = 120.0f; // 120 degrees per second
+float g_obj2_rotation = 0.0f; // obj2 rotation
 
 // EC: Scaling
 float g_obj1_scale = 1.0f;
@@ -85,18 +87,10 @@ int g_frame_counter = 0;
 bool g_is_growing = true;
 
 ShaderProgram g_shader_program;
-glm::mat4 view_matrix, m_model_matrix, m_projection_matrix, m_trans_matrix;
+glm::mat4 view_matrix, m_projection_matrix, m_trans_matrix;
 glm::mat4 g_obj1_model_matrix, g_obj2_model_matrix;
 
 float m_previous_ticks = 0.0f;
-
-// overall position
-glm::vec3 g_obj1_position = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 g_obj2_position = glm::vec3(0.0f, 0.0f, 0.0f);
-
-// movement tracker
-glm::vec3 g_obj1_movement = glm::vec3(1.0f, 1.0f, 0.0f);
-glm::vec3 g_obj2_movement = glm::vec3(-1.0f, -1.0f, 0.0f);
 
 float get_screen_to_ortho(float coordinate, Coordinate axis) {
     switch (axis) {
@@ -162,7 +156,6 @@ void initialise() {
 
     g_shader_program.load(V_SHADER_PATH, F_SHADER_PATH);
 
-    m_model_matrix = glm::mat4(1.0f);
     g_obj1_model_matrix = glm::mat4(1.0f);
     g_obj2_model_matrix = glm::mat4(1.0f);
     view_matrix = glm::mat4(1.0f);  // Defines the position (location and orientation) of the camera
@@ -205,10 +198,11 @@ void update() {
     g_obj2_model_matrix = glm::mat4(1.0f);
 
     // Req 2: Movement
-    // Add             direction       * elapsed time * units per second
+    // add             direction       * elapsed time * units per second
     g_obj1_position += g_obj1_movement * delta_time   * 1.0f;
     g_obj2_position += g_obj2_movement * delta_time   * 1.0f;
 
+    // translate the model matrix by the updated position
     g_obj1_model_matrix = glm::translate(g_obj1_model_matrix, g_obj1_position);
     g_obj2_model_matrix = glm::translate(g_obj2_model_matrix, g_obj2_position);
 
