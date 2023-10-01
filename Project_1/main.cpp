@@ -181,16 +181,16 @@ void update() {
 
     // Reset the model matrix
     g_obj1_model_matrix = glm::mat4(1.0f);
-    g_obj2_model_matrix = glm::mat4(1.0f);
+    //g_obj2_model_matrix = glm::mat4(1.0f);
 
     // Req 2: Movement
     // add             direction       * elapsed time * units per second
-    g_obj1_position += g_obj1_movement * delta_time   * 1.0f;
-    g_obj2_position += g_obj2_movement * delta_time   * 1.0f;
+    g_obj1_position += g_obj1_movement * delta_time * 1.0f;
+    g_obj2_position += g_obj2_movement * delta_time * 1.0f;
 
     // translate the model matrix by the updated position
     g_obj1_model_matrix = glm::translate(g_obj1_model_matrix, g_obj1_position);
-    g_obj2_model_matrix = glm::translate(g_obj2_model_matrix, g_obj2_position);
+    g_obj2_model_matrix = glm::translate(g_obj1_model_matrix, g_obj2_position);  // move obj2 relative to obj1
 
     // Req 3: Rotation
     g_obj2_rotation += DEGREES_PER_SECOND * delta_time;
@@ -198,18 +198,18 @@ void update() {
 
     // EC: Scaling
     if (g_obj1_scale >= MAX_SCALE) {
-		g_is_growing = false;
-	}
+        g_is_growing = false;
+    }
     else if (g_obj1_scale <= MIN_SCALE) {
-		g_is_growing = true;
-	}
+        g_is_growing = true;
+    }
 
     if (g_is_growing) {
         g_obj1_scale += GROWTH_FACTOR * delta_time;
     }
     else {
-		g_obj1_scale -= SHRINK_FACTOR * delta_time;
-	}
+        g_obj1_scale -= SHRINK_FACTOR * delta_time;
+    }
     g_obj1_model_matrix = glm::scale(g_obj1_model_matrix, glm::vec3(g_obj1_scale, g_obj1_scale, 1.0f));
 }
 
