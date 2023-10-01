@@ -48,7 +48,6 @@ const char V_SHADER_PATH[] = "shaders/vertex_textured.glsl",
 F_SHADER_PATH[] = "shaders/fragment_textured.glsl";
 
 const float MILLISECONDS_IN_SECOND = 1000.0;
-const float DEGREES_PER_SECOND = 90.0f;
 
 const int NUMBER_OF_TEXTURES = 1; // to be generated, that is
 const GLint LEVEL_OF_DETAIL = 0;  // base image level; Level n is the nth mipmap reduction image
@@ -70,10 +69,11 @@ GLuint g_obj2_texture_id;
 glm::vec3 g_obj1_position = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 g_obj2_position = glm::vec3(0.0f, 0.0f, 0.0f);
 // movement tracker
-glm::vec3 g_obj1_movement = glm::vec3(1.0f, 1.0f, 0.0f);    // up and right
+glm::vec3 g_obj1_movement = glm::vec3(0.3f, 0.3f, 0.0f);    // up and right
 glm::vec3 g_obj2_movement = glm::vec3(-1.0f, -1.0f, 0.0f);  // down and left
 
 // Req 3: Rotation
+const float DEGREES_PER_SECOND = 360.0f;
 float g_obj2_rotation = 0.0f; // obj2 rotation
 
 // EC: Scaling
@@ -82,8 +82,8 @@ float g_obj2_scale = 1.0f;
 
 const float GROWTH_FACTOR = 0.5f; // .5% growth per second
 const float SHRINK_FACTOR = 0.5f; // .5% shrinkage per second
-const int MAX_FRAMES = 100;       // grow/shrink for 100 frames
-int g_frame_counter = 0;
+const float MAX_SCALE = 1.1f;     // grow image up to 110% of original size
+const float MIN_SCALE = 0.9f;     // shrink image down to 90% of original size
 bool g_is_growing = true;
 
 ShaderProgram g_shader_program;
@@ -92,24 +92,12 @@ glm::mat4 g_obj1_model_matrix, g_obj2_model_matrix;
 
 float m_previous_ticks = 0.0f;
 
-float get_screen_to_ortho(float coordinate, Coordinate axis) {
-    switch (axis) {
-    case x_coordinate:
-        return ((coordinate / WINDOW_WIDTH) * 10.0f) - (10.0f / 2.0f);
-    case y_coordinate:
-        return (((WINDOW_HEIGHT - coordinate) / WINDOW_HEIGHT) * 7.5f) - (7.5f / 2.0);
-    default:
-        return 0.0f;
-    }
-}
-
 GLuint load_texture(const char* filepath) {
     // STEP 1: Loading the image file
     int width, height, number_of_components;
     unsigned char* image = stbi_load(filepath, &width, &height, &number_of_components, STBI_rgb_alpha);
 
-    if (image == NULL)
-    {
+    if (image == NULL) {
         LOG("Unable to load image. Make sure the path is correct.");
         LOG(filepath);
         assert(false);
@@ -179,10 +167,8 @@ void initialise() {
 
 void process_input() {
     SDL_Event event;
-    while (SDL_PollEvent(&event))
-    {
-        if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE)
-        {
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
             g_game_is_running = false;
         }
     }
@@ -211,17 +197,13 @@ void update() {
     g_obj2_model_matrix = glm::rotate(g_obj2_model_matrix, glm::radians(g_obj2_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
 
     // EC: Scaling
-    // STEP 1
-    glm::vec3 scale_vector;
-    g_frame_counter += 1;
+    if (g_obj1_scale >= MAX_SCALE) {
+		g_is_growing = false;
+	}
+    else if (g_obj1_scale <= MIN_SCALE) {
+		g_is_growing = true;
+	}
 
-    // STEP 2
-    if (g_frame_counter >= MAX_FRAMES) {
-        g_is_growing = !g_is_growing;
-        g_frame_counter = 0;
-    }
-
-    // STEP 4
     if (g_is_growing) {
         g_obj1_scale += GROWTH_FACTOR * delta_time;
     }
@@ -279,8 +261,7 @@ void shutdown() {
 int main(int argc, char* argv[]) {
     initialise();
 
-    while (g_game_is_running)
-    {
+    while (g_game_is_running) {
         process_input();
         update();
         render();
